@@ -1,0 +1,498 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>Open Road Ultra | ABS_ORG</title>
+<style>
+:root{--glass:rgba(8,15,25,.68);--line:rgba(255,255,255,.16);--cyan:#65e8ff}
+*{box-sizing:border-box}
+body{margin:0;overflow:hidden;background:#101922;color:white;font-family:Arial,sans-serif}
+button,select,input{font:inherit}
+button,select{color:white;background:#172635;border:1px solid var(--line);border-radius:9px;padding:8px;cursor:pointer}
+button:hover{border-color:var(--cyan)}
+#game{position:fixed;inset:0}
+#hud{position:fixed;inset:0;pointer-events:none}
+.panel{background:var(--glass);backdrop-filter:blur(8px);border:1px solid var(--line);border-radius:12px;padding:10px}
+#top{position:absolute;top:10px;left:10px;right:10px;display:flex;gap:8px;align-items:flex-start;justify-content:space-between}
+#stats{font-size:12px;line-height:1.8}
+#speed{font-size:28px;font-weight:800;color:var(--cyan)}
+#top button,#top select,#top input{pointer-events:auto}
+#toolbar{display:flex;flex-wrap:wrap;gap:5px;justify-content:flex-end;max-width:65%}
+#toolbar button{font-size:11px;padding:7px}
+#settings{position:absolute;top:92px;right:10px;width:min(300px,calc(100vw - 20px));max-height:72vh;overflow:auto;pointer-events:auto;display:none}
+#settings.show{display:block}
+#settings label{display:block;font-size:12px;margin:12px 0 5px}
+#settings select,#settings input[type=range]{width:100%}
+#settings input[type=color]{width:100%;height:30px}
+#settings input[type=file]{width:100%;font-size:11px}
+#settings button{margin-top:5px}
+#radio{position:absolute;bottom:10px;left:10px;width:min(230px,55vw);pointer-events:auto;font-size:11px}
+#radio audio{width:100%;height:28px;margin-top:5px}
+#radio input{width:100%;font-size:10px}
+#radio button{font-size:10px;padding:5px}
+#map{position:absolute;right:10px;bottom:10px;width:120px;height:120px;border:1px solid #ffffff66;border-radius:50%;background:#14252bcc}
+#drive{position:absolute;bottom:18px;right:14px;display:flex;align-items:flex-end;gap:8px;pointer-events:auto}
+.steer{display:flex;gap:6px}
+.drivebtn{width:40px;height:40px;min-width:40px;padding:0;font-size:17px;background:#0c172b99;border:1px solid #ffffff45;border-radius:12px;opacity:.64;touch-action:none;user-select:none}
+.drivebtn:active{opacity:1;background:#147a9b}
+#pedals{display:flex;flex-direction:column;gap:6px}
+#pedals .drivebtn{width:43px;height:43px;min-width:43px}
+#brake{color:#ffb2a8}
+#gas{color:#8dffb3}
+#message{position:absolute;left:50%;top:48%;transform:translate(-50%,-50%);text-align:center;background:#08111dcc;padding:24px;border:1px solid #ffffff33;border-radius:18px;width:min(360px,90vw);pointer-events:auto}
+#message h1{margin:0 0 8px;font-size:25px}
+#message p{font-size:12px;line-height:1.6;color:#c5d4e2}
+#start{background:#00b9d7;color:#00131a;font-weight:bold;padding:12px 24px}
+#help{position:absolute;bottom:12px;left:50%;transform:translateX(-50%);font-size:10px;color:#ffffffa8;text-align:center;pointer-events:none}
+.hidden{display:none!important}
+@media(max-width:600px){
+ #top{top:6px;left:6px;right:6px}
+ .panel{padding:7px}
+ #speed{font-size:21px}
+ #toolbar{max-width:55%;gap:4px}
+ #toolbar button{font-size:10px;padding:6px}
+ #stats{font-size:10px}
+ #drive{right:8px;bottom:12px;gap:5px}
+ .drivebtn{width:35px;height:35px;min-width:35px;font-size:15px}
+ #pedals .drivebtn{width:37px;height:37px;min-width:37px}
+ #map{width:78px;height:78px;right:7px;bottom:108px}
+ #radio{bottom:7px;left:7px;width:150px}
+ #help{bottom:91px;font-size:9px}
+}
+</style>
+</head>
+<body>
+<div id="game"></div>
+
+<div id="hud">
+ <div id="top">
+  <div class="panel" id="stats">
+   <div>OPEN ROAD <b style="color:var(--cyan)">ULTRA</b></div>
+   <div><span id="speed">0</span> km/h</div>
+   <div>Distance: <span id="distance">0.00</span> km</div>
+   <div id="gear">Gear: D</div>
+  </div>
+  <div id="toolbar">
+   <button id="cameraBtn">📷 View</button>
+   <button id="settingsBtn">⚙️</button>
+   <button id="pauseBtn">⏸</button>
+   <button id="fullscreenBtn">⛶</button>
+  </div>
+ </div>
+
+ <div id="settings" class="panel">
+  <b>GAME SETTINGS</b>
+  <label>Vehicle</label>
+  <select id="vehicle">
+   <option value="sport">Sports car</option>
+   <option value="super">Supercar</option>
+   <option value="suv">SUV</option>
+   <option value="truck">Pickup truck</option>
+  </select>
+  <label>Paint color</label>
+  <input id="paint" type="color" value="#e52f42">
+  <label>World</label>
+  <select id="world">
+   <option value="mountain">Mountains</option>
+   <option value="forest">Forest</option>
+   <option value="desert">Desert</option>
+   <option value="city">City</option>
+  </select>
+  <label>Weather</label>
+  <select id="weather">
+   <option value="clear">Clear sky</option>
+   <option value="rain">Rain</option>
+   <option value="storm">Storm</option>
+   <option value="fog">Fog</option>
+   <option value="snow">Snow</option>
+   <option value="blizzard">Blizzard</option>
+  </select>
+  <label>Time of day</label>
+  <select id="time">
+   <option value="day">Day</option>
+   <option value="sunset">Sunset</option>
+   <option value="night">Night</option>
+   <option value="cycle">Dynamic day/night</option>
+  </select>
+  <label>Graphics quality</label>
+  <select id="quality">
+   <option value="low">Low — Chromebook friendly</option>
+   <option value="medium" selected>Medium</option>
+   <option value="high">High</option>
+  </select>
+  <label>Steering sensitivity</label>
+  <input id="sensitivity" type="range" min="0.5" max="2.5" step=".1" value="1">
+  <label>Weather intensity</label>
+  <input id="intensity" type="range" min="0" max="1" step=".1" value=".6">
+  <label>Music volume</label>
+  <input id="volume" type="range" min="0" max="1" step=".05" value=".5">
+  <button id="reset">Reset driving</button>
+  <button id="discord">Copy Discord: abs_org</button>
+  <p style="font-size:11px;color:#c5d4e2">Tip: Low graphics may run better on your Lenovo 100e.</p>
+ </div>
+
+ <div id="radio" class="panel">
+  <b>♫ YOUR RADIO</b>
+  <input id="musicFiles" type="file" accept="audio/*" multiple>
+  <div id="track">Choose music from your files</div>
+  <div style="display:flex;gap:5px;margin-top:5px">
+   <button id="prev">◀</button><button id="play">▶ / ❚❚</button><button id="next">▶|</button>
+  </div>
+  <audio id="audio" controls></audio>
+ </div>
+
+ <canvas id="map" width="120" height="120"></canvas>
+
+ <div id="drive">
+  <div class="steer">
+   <button class="drivebtn" id="left" aria-label="Steer left">◀</button>
+   <button class="drivebtn" id="right" aria-label="Steer right">▶</button>
+  </div>
+  <div id="pedals">
+   <button class="drivebtn" id="gas" aria-label="Accelerate">▲</button>
+   <button class="drivebtn" id="brake" aria-label="Brake">▼</button>
+  </div>
+ </div>
+
+ <div id="help">W / ↑ accelerate · S / ↓ brake · A D / ← → steer · C camera</div>
+
+ <div id="message">
+  <h1>OPEN ROAD <span style="color:var(--cyan)">ULTRA</span></h1>
+  <p>Explore a procedural 3D road through mountains, forests, deserts and cities. No traffic. Choose your car, weather and music.</p>
+  <p>Made for open-road cruising.</p>
+  <button id="start">START DRIVING</button>
+ </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
+<script>
+(()=>{
+"use strict";
+const $=id=>document.getElementById(id);
+let scene,camera,renderer,car,roadGroup,worldGroup,weatherGroup;
+let running=false,paused=false,steer=0,throttle=0,braking=0;
+let speed=0,distance=0,roadX=0,roadAngle=0,camMode=0;
+let weather="clear",world="mountain",timeMode="day";
+let clock=new THREE.Clock(),objects=[],particles=[];
+let carColor=$("paint").value,roadSegments=100;
+const keys={};
+const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
+const rnd=(a,b)=>a+Math.random()*(b-a);
+
+function init(){
+ scene=new THREE.Scene();
+ scene.background=new THREE.Color("#9bc7e8");
+ scene.fog=new THREE.Fog("#9bc7e8",80,650);
+ camera=new THREE.PerspectiveCamera(68,innerWidth/innerHeight,.1,1500);
+ renderer=new THREE.WebGLRenderer({antialias:true, powerPreference:"high-performance"});
+ renderer.setSize(innerWidth,innerHeight);
+ renderer.setPixelRatio(Math.min(devicePixelRatio,1.5));
+ renderer.shadowMap.enabled=false;
+ renderer.outputColorSpace=THREE.SRGBColorSpace;
+ $("game").appendChild(renderer.domElement);
+
+ scene.add(new THREE.HemisphereLight(0xd6edff,0x42533d,2));
+ const sun=new THREE.DirectionalLight(0xfff0d2,2.5);
+ sun.position.set(-30,60,20);scene.add(sun);
+ makeWorld();makeRoad();makeCar();makeWeather();
+ window.addEventListener("resize",resize);
+ document.addEventListener("keydown",e=>{
+  keys[e.key.toLowerCase()]=true;
+  if(["ArrowUp","ArrowDown","ArrowLeft","ArrowRight"," "].includes(e.key))e.preventDefault();
+  if(e.key.toLowerCase()==="c")changeCamera();
+  if(e.key==="Escape")togglePause();
+ });
+ document.addEventListener("keyup",e=>keys[e.key.toLowerCase()]=false);
+ bindHold("left",()=>steer=-1,()=>{});
+ bindHold("right",()=>steer=1,()=>{});
+ bindHold("gas",()=>throttle=1,()=>{});
+ bindHold("brake",()=>braking=1,()=>{});
+ animate();
+}
+function resize(){
+ if(!renderer)return;
+ camera.aspect=innerWidth/innerHeight;
+ camera.updateProjectionMatrix();
+ renderer.setSize(innerWidth,innerHeight);
+}
+function mat(color,roughness=1){
+ return new THREE.MeshStandardMaterial({color,roughness});
+}
+function box(parent,w,h,d,color,x,y,z,roughness=1){
+ const mesh=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),mat(color,roughness));
+ mesh.position.set(x,y,z);parent.add(mesh);return mesh;
+}
+function makeWorld(){
+ if(worldGroup)scene.remove(worldGroup);
+ worldGroup=new THREE.Group();scene.add(worldGroup);
+ const groundColor=world==="desert"?"#b99a61":world==="city"?"#59636a":world==="forest"?"#345d3b":"#526d4c";
+ const ground=new THREE.Mesh(new THREE.PlaneGeometry(1800,1800),mat(groundColor));
+ ground.rotation.x=-Math.PI/2;ground.position.y=-.13;worldGroup.add(ground);
+
+ for(let i=0;i<180;i++){
+  const side=Math.random()<.5?-1:1;
+  const z=rnd(-900,900),x=side*rnd(13,90);
+  if(world==="city"){
+   const h=rnd(8,55),w=rnd(5,13);
+   box(worldGroup,w,h,w,["#53616d","#777c88","#455767"][i%3],x,h/2,z);
+   continue;
+  }
+  if(world==="desert"){
+   const h=rnd(5,25);
+   const hill=new THREE.Mesh(new THREE.ConeGeometry(rnd(8,25),h,6),mat("#c3a26b"));
+   hill.position.set(x,h/2-1,z);worldGroup.add(hill);continue;
+  }
+  if(world==="mountain"&&Math.random()<.45){
+   const h=rnd(20,100);
+   const hill=new THREE.Mesh(new THREE.ConeGeometry(rnd(12,45),h,5),mat(i%2?"#657d87":"#536b76"));
+   hill.position.set(x,h/2-2,z);worldGroup.add(hill);continue;
+  }
+  const trunk=world==="forest"?2:1.2;
+  box(worldGroup,trunk,rnd(2,5),trunk,"#60452f",x,1.5,z);
+  const crown=new THREE.Mesh(
+   new THREE.ConeGeometry(world==="forest"?rnd(2,4):rnd(2,3),world==="forest"?rnd(5,10):rnd(3,6),7),
+   mat(world==="forest"?"#1f6842":"#34713f"));
+  crown.position.set(x,world==="forest"?5:3.7,z);worldGroup.add(crown);
+ }
+}
+function makeRoad(){
+ if(roadGroup)scene.remove(roadGroup);
+ roadGroup=new THREE.Group();scene.add(roadGroup);
+ const asphalt=mat("#30343a"),line=mat("#f4f0d4"),edge=mat("#d5d8d9");
+ // A long looping-feeling road made from repeated segments.
+ for(let i=0;i<roadSegments;i++){
+  const z=-i*12;
+  box(roadGroup,12,.18,12,"#30343a",0,0,z);
+  box(roadGroup,.16,.025,12,"#eee9d8",-5.65,.105,z);
+  box(roadGroup,.16,.025,12,"#eee9d8",5.65,.105,z);
+  if(i%2===0)box(roadGroup,.13,.03,4,"#fff2b0",0,.12,z);
+ }
+ // Shoulder
+ box(roadGroup,18,.06,1200,world==="desert"?"#a18b61":"#777b70",0,-.04,-590);
+}
+function makeCar(){
+ if(car)scene.remove(car);
+ car=new THREE.Group();scene.add(car);
+ const type=$("vehicle").value;
+ const w=type==="truck"?2.15:type==="suv"?2.05:1.85;
+ const l=type==="truck"?4.9:type==="suv"?4.4:type==="super"?4.2:4.1;
+ const h=type==="suv"?.8:.55;
+ const body=new THREE.Group();car.add(body);
+ box(body,w,h,l,carColor,0,.72,0,.35);
+ box(body,w*.88,.12,l*.68,"#202a35",0,.48,-.02);
+ const cabin=box(body,w*.78,type==="suv"?.72:.58,l*.43,"#192a39",0,1.25,-.25,.2);
+ box(body,w*.82,.08,l*.46,carColor,0,1.62,-.25,.4);
+ // Windows
+ box(body,w*.72,.28,.045,"#7bc8e2",0,1.32,-.49,.2);
+ box(body,w*.72,.26,.045,"#365a70",0,1.3,-.02,.2);
+ // Front and rear lights
+ for(const side of [-1,1]){
+  box(body,.35,.14,.08,"#fff3bf",side*w*.34,.77,-l/2-.035,.25);
+  box(body,.34,.14,.08,"#ff2525",side*w*.34,.77,l/2+.035,.25);
+ }
+ // Wheels
+ for(const x of [-w*.53,w*.53]){
+  for(const z of [-l*.32,l*.32]){
+   const wheel=new THREE.Mesh(new THREE.CylinderGeometry(.34,.34,.19,14),mat("#151719"));
+   wheel.rotation.z=Math.PI/2;wheel.position.set(x,.36,z);body.add(wheel);
+   const rim=new THREE.Mesh(new THREE.CylinderGeometry(.17,.17,.2,12),mat("#a6b2bd"));
+   rim.rotation.z=Math.PI/2;rim.position.set(x*1.01,.36,z);body.add(rim);
+  }
+ }
+ // Interior dashboard visible in cockpit mode
+ const dash=box(body,w*.8,.17,.42,"#161d25",0,1.04,-.65);
+ const seatMat=mat("#151a20");
+ box(body,.5,.55,.4,"#252d35",-.45,.98,.1);
+ box(body,.5,.55,.4,"#252d35",.45,.98,.1);
+ car.userData.body=body;
+ car.userData.dash=dash;
+ car.userData.w=w;car.userData.l=l;
+ car.position.set(0,0,0);
+}
+function makeWeather(){
+ if(weatherGroup)scene.remove(weatherGroup);
+ weatherGroup=new THREE.Group();scene.add(weatherGroup);particles=[];
+ const count=$("quality").value==="low"?160:$("quality").value==="medium"?450:850;
+ if(!["rain","storm","snow","blizzard"].includes(weather))return;
+ for(let i=0;i<count;i++){
+  const snow=weather==="snow"||weather==="blizzard";
+  const p=new THREE.Mesh(
+   snow?new THREE.SphereGeometry(.055,5,5):new THREE.BoxGeometry(.025,.45,.025),
+   new THREE.MeshBasicMaterial({color:snow?0xffffff:0xa9d9ff,transparent:true,opacity:snow?.85:.45})
+  );
+  p.position.set(rnd(-18,18),rnd(0,22),rnd(-55,12));
+  weatherGroup.add(p);particles.push(p);
+ }
+}
+function applyLighting(){
+ const cycle=timeMode==="cycle"?(Math.sin(distance*.015)+1)/2:timeMode==="night"?0:timeMode==="sunset"?.25:1;
+ const sky=timeMode==="night"?"#081323":timeMode==="sunset"?"#e69b77":world==="desert"?"#d5c5a0":"#9bc7e8";
+ scene.background=new THREE.Color(sky);
+ scene.fog.color.set(sky);
+ scene.fog.near=weather==="fog"||weather==="blizzard"?12:weather==="storm"?45:90;
+ scene.fog.far=weather==="fog"||weather==="blizzard"?110:weather==="storm"?260:650;
+ scene.children.forEach(o=>{
+  if(o.isHemisphereLight)o.intensity=.3+cycle*1.7;
+  if(o.isDirectionalLight)o.intensity=.12+cycle*2.4;
+ });
+}
+function bindHold(id,down,up){
+ const el=$(id);
+ el.addEventListener("pointerdown",e=>{e.preventDefault();el.setPointerCapture(e.pointerId);down()});
+ for(const ev of ["pointerup","pointercancel","lostpointercapture"])
+  el.addEventListener(ev,()=>up());
+}
+function changeCamera(){camMode=(camMode+1)%3}
+function togglePause(){
+ if(!$("message").classList.contains("hidden"))return;
+ paused=!paused;
+ $("pauseBtn").textContent=paused?"▶":"⏸";
+}
+function reset(){
+ speed=0;distance=0;roadX=0;roadAngle=0;car.position.set(0,0,0);
+}
+function update(dt){
+ if(!running||paused)return;
+ steer=0;throttle=0;braking=0;
+ if(keys.a||keys.arrowleft)steer-=1;
+ if(keys.d||keys.arrowright)steer+=1;
+ if(keys.w||keys.arrowup)throttle=1;
+ if(keys.s||keys.arrowdown||keys[" "])braking=1;
+ // Buttons can also be held by touch.
+ if(document.querySelector("#left:active"))steer-=1;
+ if(document.querySelector("#right:active"))steer+=1;
+ if(document.querySelector("#gas:active"))throttle=1;
+ if(document.querySelector("#brake:active"))braking=1;
+ const sensitivity=+$("sensitivity").value;
+ speed+=throttle*34*dt;
+ speed-=braking*65*dt;
+ speed-=(!throttle&&!braking?9:2)*dt;
+ speed=clamp(speed,0,$("vehicle").value==="super"?270:220);
+ const speedFactor=speed/220;
+ roadAngle+=steer*sensitivity*speedFactor*dt*.85;
+ roadAngle=clamp(roadAngle,-.8,.8);
+ roadX+=steer*sensitivity*speedFactor*dt*8;
+ roadX=clamp(roadX,-4.2,4.2);
+ distance+=speed*dt/3600;
+ car.position.x=roadX;
+ car.rotation.y=-roadAngle*.24;
+ car.userData.body.rotation.z=-steer*.045*speedFactor;
+ // Scroll scenery and road beneath the vehicle.
+ const travel=speed*dt*.65;
+ roadGroup.position.z+=travel;
+ if(roadGroup.position.z>12)roadGroup.position.z-=12;
+ worldGroup.position.z+=travel*.65;
+ if(worldGroup.position.z>1800)worldGroup.position.z-=1800;
+ // Follow camera modes: chase, hood, cockpit.
+ const target=new THREE.Vector3();
+ if(camMode===0){
+  target.set(roadX+roadAngle*2,4.2,8.5);
+  camera.position.lerp(target,.06);
+  camera.lookAt(roadX,1,-14);
+ }else if(camMode===1){
+  target.set(roadX,2.0,-1.1);
+  camera.position.lerp(target,.16);
+  camera.lookAt(roadX-roadAngle*3,1.8,-30);
+ }else{
+  target.set(roadX+.0,1.48,.0);
+  camera.position.lerp(target,.16);
+  camera.lookAt(roadX-roadAngle*4,1.4,-30);
+ }
+ // Rain and snow drift past the camera.
+ for(const p of particles){
+  p.position.z+=speed*dt*.7+dt*22;
+  p.position.y-=dt*(weather==="snow"||weather==="blizzard"?1.5:12);
+  p.position.x+=weather==="blizzard"?dt*3:0;
+  if(p.position.z>14||p.position.y<0){
+   p.position.z=rnd(-55,-20);p.position.y=rnd(10,22);p.position.x=rnd(-18,18);
+  }
+ }
+ if(timeMode==="cycle")applyLighting();
+ $("speed").textContent=Math.round(speed);
+ $("distance").textContent=distance.toFixed(2);
+ $("gear").textContent="Gear: "+(speed<1?"N":"D");
+ drawMap();
+}
+function drawMap(){
+ const c=$("map"),ctx=c.getContext("2d");
+ ctx.clearRect(0,0,c.width,c.height);
+ ctx.strokeStyle="#dce9f4";ctx.lineWidth=13;
+ ctx.beginPath();ctx.moveTo(60,120);ctx.bezierCurveTo(20,85,100,45,60,0);ctx.stroke();
+ ctx.strokeStyle="#343e4b";ctx.lineWidth=9;
+ ctx.beginPath();ctx.moveTo(60,120);ctx.bezierCurveTo(20,85,100,45,60,0);ctx.stroke();
+ ctx.fillStyle="#63e8ff";ctx.beginPath();ctx.arc(60,82,4,0,Math.PI*2);ctx.fill();
+}
+function animate(){
+ requestAnimationFrame(animate);
+ const dt=Math.min(clock.getDelta(),.05);
+ update(dt);renderer.render(scene,camera);
+}
+function setWeather(){
+ weather=$("weather").value;makeWeather();applyLighting();
+}
+function setWorld(){
+ world=$("world").value;makeWorld();makeRoad();applyLighting();
+}
+function setQuality(){
+ const q=$("quality").value;
+ renderer.setPixelRatio(Math.min(devicePixelRatio,q==="low"?.75:q==="medium"?1:1.5));
+ makeWeather();
+}
+$("start").onclick=()=>{
+ running=true;$("message").classList.add("hidden");
+ clock.getDelta();
+};
+$("settingsBtn").onclick=()=>$("settings").classList.toggle("show");
+$("cameraBtn").onclick=()=>{
+ changeCamera();
+ $("cameraBtn").textContent=["📷 Chase","📷 Hood","📷 Cockpit"][camMode];
+};
+$("pauseBtn").onclick=togglePause;
+$("fullscreenBtn").onclick=()=>{
+ if(!document.fullscreenElement)document.documentElement.requestFullscreen?.();
+ else document.exitFullscreen?.();
+};
+$("vehicle").onchange=makeCar;
+$("paint").oninput=()=>{
+ carColor=$("paint").value;
+ if(car&&car.userData.body)car.userData.body.children.forEach(o=>{
+  if(o.material&&o.material.color&&o.geometry.type==="BoxGeometry"&&o.position.y>.4&&o.position.y<1)o.material.color.set(carColor);
+ });
+};
+$("weather").onchange=setWeather;
+$("world").onchange=setWorld;
+$("time").onchange=()=>{timeMode=$("time").value;applyLighting()};
+$("quality").onchange=setQuality;
+$("reset").onclick=reset;
+$("discord").onclick=async()=>{
+ try{await navigator.clipboard.writeText("abs_org");$("discord").textContent="Copied: abs_org";}
+ catch(e){prompt("Copy Discord handle:","abs_org")}
+};
+
+// Local music playlist: files remain on the user's device.
+let playlist=[],trackIndex=0,objectUrl=null;
+const audio=$("audio");
+$("musicFiles").onchange=e=>{
+ playlist=Array.from(e.target.files||[]);trackIndex=0;playTrack();
+};
+function playTrack(){
+ if(!playlist.length){$("track").textContent="Choose music from your files";return}
+ if(objectUrl)URL.revokeObjectURL(objectUrl);
+ objectUrl=URL.createObjectURL(playlist[trackIndex]);
+ audio.src=objectUrl;audio.volume=+$("volume").value;
+ $("track").textContent=(trackIndex+1)+"/"+playlist.length+" · "+playlist[trackIndex].name;
+ audio.play().catch(()=>{});
+}
+$("play").onclick=()=>audio.paused?audio.play():audio.pause();
+$("next").onclick=()=>{if(playlist.length){trackIndex=(trackIndex+1)%playlist.length;playTrack()}};
+$("prev").onclick=()=>{if(playlist.length){trackIndex=(trackIndex-1+playlist.length)%playlist.length;playTrack()}};
+audio.onended=()=>{if(playlist.length){trackIndex=(trackIndex+1)%playlist.length;playTrack()}};
+$("volume").oninput=()=>audio.volume=+$("volume").value;
+
+init();
+})();
+</script>
+</body>
+</html>
